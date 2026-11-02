@@ -69,6 +69,26 @@ How the lazy modules end up in separate files depends on your bundler, the dev a
 
 `Ej2UploaderDataAdapter` is not exported from the entry (that would load the uploader), import it from `.../widgets/uploader/ej2-uploader`.
 
+# Releasing
+Releases are published by `.github/workflows/publish.yml` with npm trusted publishing (OIDC), there is no npm token to store.
+Bump `version` in `package.json`, merge to `master`, then publish a GitHub Release tagged `v<version>`. The workflow verifies
+(bindings, tag, build, isolation, a clean-install import check), then a maintainer approves the `npm-publish` environment and it publishes.
+Run the workflow by hand with "dry run" checked to verify without publishing.
+
+One-time setup (needs an npm login with 2FA, as an owner of the `@refactored-ts` scope):
+1. npm only lets you trust a package that already exists, so publish a pre-release from your machine, the real `1.0.0` then goes out
+   through the workflow with provenance. The `next` tag keeps it from becoming `latest`, and provenance only works in CI, hence the flag:
+   ```
+   npm pkg set version=1.0.0-pre.0
+   yarn build && npm publish --access public --tag next --provenance=false
+   git checkout package.json
+   ```
+2. Trust this repository and workflow (npm >= 11.15):
+   `npm trust github @refactored-ts/aurelia-syncfusion-ej2-bridge --file publish.yml --repo rts-mikes/aurelia-syncfusion-ej2-bridge --env npm-publish --allow-publish`
+3. In the repository settings create the `npm-publish` environment and add required reviewers.
+
+If a version is already on npm the workflow skips publishing instead of failing.
+
 # Dev app and end-to-end tests
 `yarn start` serves the dev app on http://localhost:8090. Each control has a page of feature samples
 (`dev-app/<control>/`), registered once in `dev-app/nav.ts`, which drives both the router and the sidebar.

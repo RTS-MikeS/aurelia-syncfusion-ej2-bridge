@@ -1,3 +1,6 @@
+# Publishes to npm with trusted publishing (OIDC): there is no npm token or secret. npm trusts this repository + workflow file +
+# the `npm-publish` environment, set up once with `npm trust github` (see README, "Releasing").
+# Protect the `npm-publish` environment in the repository settings (required reviewers) so a human approves every publish.
 name: publish
 
 on:
@@ -6,16 +9,15 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: Pack only, do not publish
+        description: Verify and pack only, do not publish
         type: boolean
         default: true
 
 permissions:
   contents: read
-  id-token: write # npm provenance
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -24,8 +26,6 @@ jobs:
         with:
           node-version: 20
           cache: yarn
-          registry-url: https://registry.npmjs.org
-          scope: "@refactored-ts"
       - run: yarn install --frozen-lockfile
       - run: yarn check:bindings
 
@@ -36,14 +36,39 @@ jobs:
           [ "${GITHUB_REF_NAME#v}" = "$v" ] || { echo "tag $GITHUB_REF_NAME != package.json $v"; exit 1; }
 
       - run: yarn build
+      - run: yarn check:isolation
       - run: yarn check:package
       - run: npm pack --dry-run
 
+  publish:
+    needs: verify
+    if: github.event_name == 'release' || inputs.dry-run == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write # the OIDC token npm exchanges for publish rights
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          registry-url: https://registry.npmjs.org
+      # trusted publishing needs npm >= 11.5.1, newer than the npm that ships with Node 20
+      - run: npm install -g npm@11.18.0 && npm --version
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+
       - name: Publish
-        if: github.event_name == 'release' || inputs.dry-run == false
         run: |
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "$name@$version is already on npm, nothing to publish"
+            exit 0
+          fi
           tag=latest
-          case "$(node -p "require('./package.json').version")" in *-*) tag=next;; esac
-          npm publish --access public --provenance --tag "$tag"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          case "$version" in *-*) tag=next;; esac
+          npm publish --access public --tag "$tag"
