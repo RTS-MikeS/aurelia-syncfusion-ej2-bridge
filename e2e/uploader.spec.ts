@@ -156,7 +156,8 @@ test('properties: directoryUpload and template', async ({ app, page }) => {
   expect(await widgetValue(page, 'up-dir', 'w.directoryUpload')).toBe(true);
   const section = app.section('up-dir');
   await section.locator('input[type=file]').setInputFiles('dev-app/demo-resources');
-  await expect(section.locator('.tpl-file .tpl-name').first()).toContainText('date-iso-value-converter.ts');
+  // the files arrive in the order the filesystem lists the directory, which differs between machines
+  await expect(section.locator('.tpl-file .tpl-name').filter({ hasText: 'date-iso-value-converter.ts' })).toHaveCount(1);
 });
 
 test('events: created, selected, rendering, upload, progress, change, success, actionComplete, remove, clear', async ({ app, page }) => {

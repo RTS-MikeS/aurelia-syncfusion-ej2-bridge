@@ -7,8 +7,14 @@ on:
 
 jobs:
   playwright:
+    name: playwright (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # the whole suite is ~1900 tests and takes over 35 minutes on one machine, so it runs as four shards
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,11 +24,23 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: yarn check:bindings
       - run: npx playwright install --with-deps chromium
-      - run: yarn e2e
+      - run: yarn e2e --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report
             test-results
+
+  # one stable name for branch protection, whatever the number of shards
+  e2e:
+    needs: playwright
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ needs.playwright.result }}" != "success" ]; then
+            echo "playwright shards: ${{ needs.playwright.result }}"
+            exit 1
+          fi

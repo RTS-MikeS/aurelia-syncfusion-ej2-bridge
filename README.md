@@ -84,7 +84,7 @@ One-time setup (needs an npm login with 2FA, as an owner of the `@refactored-ts`
    git checkout package.json
    ```
 2. Trust this repository and workflow (npm >= 11.15):
-   `npm trust github @refactored-ts/aurelia-syncfusion-ej2-bridge --file publish.yml --repo rts-mikes/aurelia-syncfusion-ej2-bridge --env npm-publish --allow-publish`
+   `npm trust github @refactored-ts/aurelia-syncfusion-ej2-bridge --file publish.yml --repo RTS-MikeS/aurelia-syncfusion-ej2-bridge --env npm-publish --allow-publish`
 3. In the repository settings create the `npm-publish` environment and add required reviewers.
 
 If a version is already on npm the workflow skips publishing instead of failing.

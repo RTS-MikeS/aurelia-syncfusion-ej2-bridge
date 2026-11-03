@@ -14,12 +14,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rts-mikes/aurelia-syncfusion-ej2-bridge.git"
+    "url": "git+https://github.com/RTS-MikeS/aurelia-syncfusion-ej2-bridge.git"
   },
   "bugs": {
-    "url": "https://github.com/rts-mikes/aurelia-syncfusion-ej2-bridge/issues"
+    "url": "https://github.com/RTS-MikeS/aurelia-syncfusion-ej2-bridge/issues"
   },
-  "homepage": "https://github.com/rts-mikes/aurelia-syncfusion-ej2-bridge#readme",
+  "homepage": "https://github.com/RTS-MikeS/aurelia-syncfusion-ej2-bridge#readme",
   "dependencies": {
     "lodash": "^4.17.21"
   },

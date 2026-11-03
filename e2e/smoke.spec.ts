@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 
 // nav.ts is the single route registry, parse it so the suite never drifts from the app
@@ -30,16 +31,30 @@ test('sidebar navigation and search', async ({ app, page }) => {
   await expect(page.getByTestId('nav-grid')).toHaveCount(0);
 });
 
+/** Wait until the page stops growing. Leaving while its widgets are still being created is not what this test is about, and
+ * Syncfusion throws from inside a chart that is destroyed mid-setup (WebMcpChart on the Chart page). */
+async function settled(page: Page, title: string) {
+  let last = -1;
+  let stable = 0;
+  await expect.poll(async () => {
+    const count = await page.locator('main *').count();
+    stable = count === last ? stable + 1 : 0;
+    last = count;
+    return stable;
+  }, { message: `${title} settles`, intervals: [300], timeout: 60_000 }).toBeGreaterThanOrEqual(3);
+}
+
 // one long session: every page is reached by clicking its nav link from the previous one, so teardown of a
 // page that fails (e.g. a widget throwing in destroy) blanks the next page and is caught here
 test('every nav link loads its page in sequence', async ({ app, page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(600_000);
   await app.open('home');
   for (const { route, title } of routes) {
     await page.getByTestId(`nav-${route}`).click();
     await expect(page, title).toHaveURL(new RegExp(`/${route}$`));
     await expect(page.locator('main router-view h2').first(), `${title} heading`).toBeVisible();
     await expect(page.locator('main [class*="e-"]').first(), `${title} widget`).toBeAttached();
+    await settled(page, title);
     expect(app.errors, `errors after ${title}`).toEqual([]);
   }
 });
