@@ -6,7 +6,7 @@ export class DemoApp {
   private failedRequests: string[] = [];
 
   constructor(readonly page: Page) {
-    page.on('pageerror', e => this.errors.push(`pageerror: ${e.message}\n${(e.stack || '').split('\n').slice(1, 6).join('\n')}`));
+    page.on('pageerror', e => this.errors.push(`pageerror: ${e.message}\n${(e.stack || '').split('\n').slice(1, 40).join('\n')}`));
     page.on('console', m => { if (m.type() === 'error') { this.errors.push(`console: ${m.text()}`); } });
     page.on('requestfailed', r => this.failedRequests.push(`${r.failure()?.errorText} ${r.url()}`));
   }
@@ -41,6 +41,8 @@ export class DemoApp {
 
 export const test = base.extend<{ app: DemoApp }>({
   app: async ({ page }, use) => {
+    // V8 keeps 10 frames by default, too few to see what called into a failing third-party method
+    await page.addInitScript(() => { (Error as any).stackTraceLimit = 60; });
     const app = new DemoApp(page);
     await mockFileManagerService(page);
     await mockUploadService(page);
